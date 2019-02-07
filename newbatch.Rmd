@@ -1,0 +1,122 @@
+---
+title: "newbatch"
+author: "Shelloren"
+date: "November 5, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# prepare environment
+#--------------------
+
+# clear environment
+rm(list = ls())
+
+# load libs
+pacman::p_load(
+  caret, doParallel, parallel, magrittr,
+  tidyverse, tidyquant, randomForest
+)
+
+# fix some crash in namespace
+slice <- dplyr::slice
+margin <- ggplot2::margin
+
+# prepare dataset
+#--------------------
+
+# import dataset
+attrition <- read_csv("data_input/HR_employee_attrition.csv")
+
+# quick check
+glimpse(attrition)
+
+# check NA
+attrition %>% is.na() %>% colSums()
+
+# adjust column types
+attrition %<>%
+  select(
+    -EmployeeCount, -EmployeeNumber, -Over18, -StandardHours
+  ) %>%
+  mutate(
+    Attrition = factor(Attrition, levels = c("Yes", "No")),
+    Age = Age %>% as.numeric(),
+    DailyRate = DailyRate %>% as.numeric(),
+    DistanceFromHome = DistanceFromHome %>% as.numeric(),
+    HourlyRate = HourlyRate %>% as.numeric(),
+    MonthlyIncome = MonthlyIncome %>% as.numeric(),
+    MonthlyRate = MonthlyRate %>% as.numeric(),
+    NumCompaniesWorked = NumCompaniesWorked %>% as.numeric(),
+    PercentSalaryHike = PercentSalaryHike %>% as.numeric(),
+    TotalWorkingYears = TotalWorkingYears %>% as.numeric(),
+    TrainingTimesLastYear = TrainingTimesLastYear %>% as.numeric(),
+    YearsAtCompany = YearsAtCompany %>% as.numeric(),
+    YearsInCurrentRole = YearsInCurrentRole %>% as.numeric(),
+    YearsSinceLastPromotion = YearsSinceLastPromotion %>% as.numeric(),
+    YearsWithCurrManager = YearsWithCurrManager %>% as.numeric(),
+    EmployeeID = row_number()
+  ) %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate_if(is.integer, as.factor) %>%
+  select(EmployeeID, everything())
+
+# quick check
+glimpse(attrition)
+
+# split train:test
+set.seed(100)
+trainRow <- createDataPartition(attrition$Attrition, p = 0.9, list = FALSE)
+
+trainData <- attrition %>% slice(trainRow)
+testData <- attrition %>% slice(-trainRow)
+
+testData %>%
+  select(-Attrition) %>%
+  write_csv("data/Employee Batch 1.csv")
+
+
+testData %>% 
+  select(-Attrition) %>% 
+  transform(DailyRate = sample(DailyRate),
+            Age = sample(Age),
+            DistanceFromHome = sample(DistanceFromHome),
+            HourlyRate = sample(HourlyRate),
+            MonthlyIncome = sample(MonthlyIncome),
+            MonthlyRate = sample(MonthlyRate),
+            NumCompaniesWorked = sample(NumCompaniesWorked),
+            PercentSalaryHike = sample(PercentSalaryHike),
+            TotalWorkingYears = sample(TotalWorkingYears),
+            TrainingTimesLastYear = sample(TrainingTimesLastYear),
+            YearsAtCompany = sample(YearsAtCompany),
+            YearsInCurrentRole = sample(YearsInCurrentRole),
+            YearsSinceLastPromotion = sample(YearsSinceLastPromotion),
+            YearsWithCurrManager = sample(YearsWithCurrManager)) %>% 
+  write_csv("data/Employee Batch 2.csv")
+            
+            
+
+testData %>% 
+  select(-Attrition) %>%
+  transform(DailyRate = sample(DailyRate),
+            Age = sample(Age),
+            DistanceFromHome = sample(DistanceFromHome),
+            HourlyRate = sample(HourlyRate),
+            MonthlyIncome = sample(MonthlyIncome),
+            MonthlyRate = sample(MonthlyRate),
+            NumCompaniesWorked = sample(NumCompaniesWorked),
+            PercentSalaryHike = sample(PercentSalaryHike),
+            TotalWorkingYears = sample(TotalWorkingYears),
+            TrainingTimesLastYear = sample(TrainingTimesLastYear),
+            YearsAtCompany = sample(YearsAtCompany),
+            YearsInCurrentRole = sample(YearsInCurrentRole),
+            YearsSinceLastPromotion = sample(YearsSinceLastPromotion),
+            YearsWithCurrManager = sample(YearsWithCurrManager)) %>% 
+  write_csv("data/Employee Batch 3.csv")
+
+```
+
