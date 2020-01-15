@@ -1,0 +1,218 @@
+---
+title: "Attrition Prediction  "
+author: "Shelloren"
+date: "`r format(Sys.Date(), '%B %e, %Y')`"
+output:
+  html_document:
+    theme: flatly
+    highlight: zenburn
+    toc: true
+    toc_float:
+      collapsed: false
+    df_print: paged
+    code_folding: show
+    code_download: true
+---
+
+```{r setup, include=FALSE}
+# clear-up the environment
+rm(list = ls())
+
+# chunk options
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  fig.asp = 0.5625,
+  fig.align = "center",
+  out.width = "85%",
+  comment = "#>"
+)
+```
+
+## Background
+
+As I state in my first version of this topic, unwanted attritions are **expensive** not just in figure of money but mentally for all employee in the office. So to preventing this is some improvement that we all can invested in. 
+
+Here the list of libraries that i used :
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(ranger)
+library(ggplot2)
+library(lime)
+```
+
+
+## Import Dataset
+
+```{r data-import}
+# import dataset
+data_hr <- read_csv("data_input/WA_Fn-UseC_-HR-Employee-Attrition.csv")
+data_hr
+```
+
+In this project I try to predict employee attrition we'll still use a data set provide by [IBM - Watson Analytics Community Sample Data](https://www.ibm.com/communities/analytics/watson-analytics-blog/hr-employee-attrition/).
+
+* `Attrition`: Yes or No Parameter wether the employee commit attrition.
+* `BusinessTravel`: One of factor of `Non-Travel`, `Travel_Frequently` and `Travel_Rarely`
+* `Education`: Ranged from 1 `Below College`, 2 `College`, 3 `Bachelor`, 4 `Master` and 5 `Doctor ` 
+* `EnvironmentSatisfaction`:Rating from employee range from; 1 `Low`, 2 `Medium`, 3 `High` and 4 `Very High`. This appraisal were included in few parameters such as;`JobInvolvement`,`RelationshipSatisfaction`, `PerformanceRating`, `JobSatisfaction` and `WorkLifeBalance`.
+
+```{r}
+skimr::skim(data_hr)
+```
+
+
+## Data Preprocess/Wrangling
+
+### Cross-Validation 
+
+We'll do simple cross-validation with help of *rsample package*, with 75% propotion.
+
+```{r preproc-initial_split}
+# set seed
+set.seed(1)
+
+# create initial split
+splitted <- initial_split(data_hr, prop = 0.75, strata = "Attrition")
+
+```
+
+### Defining Preprocess 
+
+Making recipes for the data, juice the training data and bake the testing data.
+
+```{r preproc-rec}
+# define preprocess recipe from train dataset
+rec <- recipe(Attrition ~ ., data = training(splitted)) %>% 
+  step_rm(EmployeeCount, EmployeeNumber) %>%
+  step_nzv(all_predictors()) %>% 
+  step_string2factor(all_nominal(), -Attrition) %>%
+  step_string2factor(Attrition, levels = c("Yes", "No")) %>%
+  step_downsample(Attrition, ratio = 1/1, seed = 1) %>%
+  prep(strings_as_factors = FALSE)
+
+# get train and test dataset
+data_train <- juice(rec)
+data_test <- bake(rec, testing(splitted))
+
+# quick check
+data_train
+```
+
+## Modeling
+
+I will using ranger to do the random forest classification.
+
+### Model Specifications
+
+```{r model-spec}
+# define model specification
+model_spec <- rand_forest(
+  mode = "classification",
+  mtry = 29,
+  trees = 500,
+  min_n = 15
+)
+
+# define model engine
+model_spec <- set_engine(
+  object = model_spec,
+  engine = "ranger",
+  seed = 100,
+  num.threads = parallel::detectCores() / 2,
+  importance = "impurity"
+)
+
+# quick check
+model_spec
+```
+
+### Model Fitting
+
+```{r model-fit}
+# fit the model
+model <- fit_xy(
+  object = model_spec,
+  x = select(data_train, -Attrition),
+  y = select(data_train, Attrition)
+)
+
+# quick check
+model
+```
+
+### Variable Importance
+
+```{r model-var_imp}
+# get variable importance
+var_imp <- tidy(model$fit$variable.importance)
+
+# tidying
+var_imp <- var_imp %>%
+  head(10) %>% 
+  rename(variable = names, importance = x) %>%
+  mutate(variable = reorder(variable, importance))
+
+# variable importance plot
+ggplot(var_imp, aes(x = variable, y = importance)) +
+  geom_col(fill = aes(importance)) +
+  coord_flip() +
+  labs(title = "Variables Importance (Top 10)", x = NULL, y = NULL, fill = NULL) +
+  scale_y_continuous(expand = expand_scale(mult = c(0, 0.1))) +
+  theme_minimal()
+```
+
+## Model Evaluation
+
+### Predict on Test Dataset
+
+```{r eval-pred}
+# predict on test
+pred_test <- select(data_test, Attrition) %>%
+  bind_cols(predict(model, select(data_test, -Attrition))) %>%
+  bind_cols(predict(model, select(data_test, -Attrition), type = "prob"))
+
+# quick check
+head(pred_test, 3)
+```
+
+### Confusion Matrix
+
+```{r eval-conf_mat}
+# confusion matrix
+pred_test %>%
+  conf_mat(Attrition, .pred_class) %>%
+  autoplot(type = "heatmap")
+```
+
+```{r eval-conf_mat-summary}
+# metrics summary
+pred_test %>%
+  summarise(
+    accuracy = accuracy_vec(Attrition, .pred_class),
+    sensitivity = sens_vec(Attrition, .pred_class),
+    specificity = spec_vec(Attrition, .pred_class),
+    precision = precision_vec(Attrition, .pred_class)
+  )
+```
+
+# Model Explaination
+
+We'll use Lime
+
+```{r}
+set.seed(1)
+explainer <- lime(x = data_train %>% select(-Attrition), 
+                  model = model)
+
+explanation <- explain(x = data_test %>% select(-Attrition) %>% slice(1:4), 
+                       labels = "Yes",
+                       explainer = explainer, 
+                       n_features = 5)
+```
+
+```{r}
+plot_features(explanation)
+```
+
