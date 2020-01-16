@@ -29,7 +29,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Background
+# Background
 
 As I state in my first version of this topic, unwanted attritions are **expensive** not just in figure of money but mentally for all employee in the office. So to preventing this is some improvement that we all can invested in. 
 
@@ -43,7 +43,7 @@ library(lime)
 ```
 
 
-## Import Dataset
+## Dataset
 
 ```{r data-import}
 # import dataset
@@ -53,7 +53,7 @@ data_hr
 
 In this project I try to predict employee attrition we'll still use a data set provide by [IBM - Watson Analytics Community Sample Data](https://www.ibm.com/communities/analytics/watson-analytics-blog/hr-employee-attrition/).
 
-* `Attrition`: Yes or No Parameter wether the employee commit attrition.
+* `Attrition`: Yes or No Parameter whether the employee commit attrition.
 * `BusinessTravel`: One of factor of `Non-Travel`, `Travel_Frequently` and `Travel_Rarely`
 * `Education`: Ranged from 1 `Below College`, 2 `College`, 3 `Bachelor`, 4 `Master` and 5 `Doctor ` 
 * `EnvironmentSatisfaction`:Rating from employee range from; 1 `Low`, 2 `Medium`, 3 `High` and 4 `Very High`. This appraisal were included in few parameters such as;`JobInvolvement`,`RelationshipSatisfaction`, `PerformanceRating`, `JobSatisfaction` and `WorkLifeBalance`.
@@ -63,11 +63,14 @@ skimr::skim(data_hr)
 ```
 
 
-## Data Preprocess/Wrangling
+From skims report we ensure there's no missing value and there's few variables that can be removed because *NearZeroVariance* or simply it won't be use in machine learning letter in time.
+
+
+# Data Preprocess/Wrangling
 
 ### Cross-Validation 
 
-We'll do simple cross-validation with help of *rsample package*, with 75% propotion.
+We'll do simple cross-validation with help of *rsample package*, with 75% proportion.
 
 ```{r preproc-initial_split}
 # set seed
@@ -100,7 +103,7 @@ data_test <- bake(rec, testing(splitted))
 data_train
 ```
 
-## Modeling
+# Modeling
 
 I will using ranger to do the random forest classification.
 
@@ -163,9 +166,9 @@ ggplot(var_imp, aes(x = variable, y = importance)) +
   theme_minimal()
 ```
 
-## Model Evaluation
+# Model Evaluation
 
-### Predict on Test Dataset
+## Predict on Test Dataset
 
 ```{r eval-pred}
 # predict on test
@@ -177,7 +180,7 @@ pred_test <- select(data_test, Attrition) %>%
 head(pred_test, 3)
 ```
 
-### Confusion Matrix
+## Confusion Matrix
 
 ```{r eval-conf_mat}
 # confusion matrix
@@ -197,7 +200,7 @@ pred_test %>%
   )
 ```
 
-# Model Explaination
+# Model Explanation
 
 We'll use Lime
 
@@ -214,5 +217,11 @@ explanation <- explain(x = data_test %>% select(-Attrition) %>% slice(1:4),
 
 ```{r}
 plot_features(explanation)
+```
+
+```{r}
+data_train %>%  
+  select_if(is.numeric) %>% 
+  GGally::ggcorr(high = "indianred", low = "30AEC9")
 ```
 
