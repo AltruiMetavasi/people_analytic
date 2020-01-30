@@ -4,4 +4,4 @@ This is my first project when studying data science. I tried to predict Attritio
 
 ## More to update
 
-Applied tidymodels when pre-process data and Lime as agnostic interpreter to the data.
+Applied tidymodels when pre-process data and Lime as agnostic interpreter to the data. (**done in version2**)
