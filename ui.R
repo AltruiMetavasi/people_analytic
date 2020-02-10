@@ -1,250 +1,143 @@
-# prepare environment
 #--------------------
-
-# load libs
-library(DT)
-library(magrittr)
-library(plotly)
-library(shinydashboard)
-library(tidyverse)
-library(tidyquant)
-library(shinythemes)
-
 # header
-#--------------------
 
 # dashboard header
 header <- dashboardHeader(
-
   # main title
-  title = "Employee Attrition",
-
+  title = "withPeeps",
   titleWidth = 250
-
 )
 
+#--------------------
 # sidebar
-#--------------------
-
-# introduction
-introMenu <- menuItem(
-
-  text = "Background",
-  tabName = "intro",
-  icon = icon("book-reader"),
-  selected = TRUE
-
-)
-
-# prediction
-predMenu <- menuItem(
-
-  text = "Prediction",
-  tabName = "pred",
-  icon = icon("book-reader")
-
-)
-
-# full sidebar
 sidebar <- dashboardSidebar(
-
   sidebarMenu(
-
-    # intro
-    introMenu,
-
-    # pred
-    predMenu
-
+    # Background
+    menuItem(
+      text = "Background",
+      tabName = "Background",
+      icon = icon("book-reader")
+    ),
+    # Overview
+    menuItem(
+      text = "Overview",
+      tabName = "Overview",
+      icon = icon("book-reader")
+    )
   ),
-
   width = 250
-
 )
 
-# body: intro - items
-#--------------------
-Backgroundtxt <- fluidPage(
-  titlePanel("Attrition"),
-    mainPanel( p("Attrition in very basic concept is type of employee churn. Some probably wonders what the diffrent with another type of churn 'the turnover', both are a decrease number of employees on staff, but attrition is typically voluntary or natural - like retirement or resignation. The problem is this could lead to relatively high cost to the company, the time or the cost of money from acquiring a new talent. In fact, the average cost-per-hire to fill a vacant position due to turnover or preventable attrition is $4,129."),
-               br(),
-               img(src = "data/Quits_rate_vs_unemployment_rate.png", height = 70, width = 200), 
-               br(),
-               p("In this project I try to predict employee attrition with machine learning. I will use a data set provide by IBM Sample Data. In his data, each variable (row) describes the employee with parameters like: age, department, Job Role, income, years at company, etc. The target variable 'Attrition' is known (it is historical value) and our main objective is to do machine learning classification (we predict yes/no for attrition)."),
-    ))
-              
-
-
-# introduction text
-introText <- box(
-
-  # display html
-  # includeHTML("demoday_attrition.html"),
-
-  width = NULL
-
-)
-
-
-# body: intro - full
+# body Background - full
 #--------------------
 
 # data body
-introBody <- tabItem(
-
-  tabName = "intro",
-
+BackgroundBody <- tabItem(
+  tabName = "Background",
   column(
-
-    Backgroundtxt,
-
-    width = 12
-
+    Background,
+    width = 12)
   )
 
-)
-
-# body: pred - input
+# body: or - input
 #--------------------
-predInputUI <- box(
-
+dataInputUI <- box(
     # input: file upload
-    uiOutput(outputId = "predData"),
-
+    uiOutput(outputId = "predata"),
     # input: data settings
-    uiOutput(outputId = "predDataName"),
-
+    uiOutput(outputId = "predata"),
     # input: decomposition action button
-    actionButton(inputId = "predDataAB", label = "Apply"),
-
+    actionButton(inputId = "predata", label = "Apply"),
     status = "primary",
     width = NULL
-
 )
 
-# body: pred - output
+# body: or - output
 #--------------------
-
-# overall value box
-ovpredboxUI <- box(
-
-  # input employee Number Dynamic valueBoxes
-  valueBoxOutput("employeebox"),
-
-  # input attrition Number Dynamic valueBoxes
-  valueBoxOutput("attritionbox"),
-
-  # input stay employee Number Dynamic valueBoxes
-  valueBoxOutput("stayingbox"),
-
+tableUI <- box(
+  dataTableOutput(outputId = "ortable"),
+  actionButton("ordownload", "Download Result"),
   width = NULL
-
 )
 
-onepredboxUI <- box(
-
-  # input employee ID Number Dynamic valueBoxes
-  valueBoxOutput("employeIDbox"),
-
-  # input Yes on no  employee Number Dynamic valueBoxes
-  valueBoxOutput("attritionYNbox"),
-
-  # input probability employee Dynamic valueBoxes
-  valueBoxOutput("probbox"),
-
-  width = NULL
-
-)
-
-predtableUI <- box(
-
-  dataTableOutput(outputId = "predtable"),
-  
-  actionButton("predDownload", "Download Result"),
-
-  width = NULL
-
-)
-
-# body: pred - full
+# body: or - full
 #--------------------
-
 # data body
-predBody <- tabItem(
-
-  tabName = "pred",
-
+overbody <- tabItem(
+  tabName = "Overview",
   fluidRow(
-
+    # input employee Number Dynamic valueBoxes
+    valueBoxOutput(
+      inputId = "employee_box",
+      "—", "Total Employee",
+      color = "purple",
+      icon = icon("comment-dots"),
+      width = 3),
+    # input attrition Number Dynamic valueBoxes
+    valueBoxOutput(
+      inputId = "attrition_box",
+      "—", "Total Churn Employee",
+      color = "orange",
+      icon = icon("user-circle"),
+      width = 3),
+    # input stay employee Number Dynamic valueBoxes
+    valueBoxOutput(
+      inputId = "staying_box",
+      "—", "Total Stayed Employee",
+      color = "green",
+      icon = icon("hourglass-half"),
+      width = 3),
+    # input employee ID Number Dynamic valueBoxes
+    valueBoxOutput(
+      inputId = "employeID_box",
+      "—", ("Employee ID"),
+      color = "red",
+      icon = icon("heart"),
+      width = 3),
+    # input Yes on no  employee Number Dynamic valueBoxes
+    valueBoxOutput(
+      inputId = "attritionYNbox",
+      "—", ("Attrittion Y/N"),
+      color = "teal",
+      icon = icon("map-signs"),
+      width = 3),
+    # input probability employee Dynamic valueBoxes
+    valueBoxOutput("probbox"),
+      "—", ("Attrittion Probability"),
+      color = "teal",
+      icon = icon("percent"),
+      width = 3),
+  fluidRow(
     column(
-
-      predInputUI,
-
+      ortableUI,
       width = 12
-
+      ),
     )
-
-  ),
-
-  fluidRow(
-
-    column(
-
-      predtableUI,
-
-      width = 5
-
-    ),
-
-    column(
-
-      ovpredboxUI,
-
-      onepredboxUI,
-
-      width = 7
-
-    )
-
   )
-
-)
 
 # body: full
 #--------------------
-
 # full body
 body <- dashboardBody(
-  
   # list of tabs
   tabItems(
-
     # intro
-    introBody,
-
-    # pred
-    predBody
-
+    BackgroundBody,
+    # overview
+    overbody
   )
-
 )
-
-
 
 # full UI
 #--------------------
 
 ui <- dashboardPage(
   # adding theme
-  fluidPage(theme = shinytheme("journal"),
-
-  # header
-  header = header,
-
-  # side bar
-  sidebar = sidebar,
-
-  # body
-  body = body
-
+  fluidPage(
+    theme = shinytheme("journal"),
+    header = header, # header
+    sidebar = sidebar, # side bar
+    body = body, # body
+    theme = shinytheme("cosmo")
+  )
 )
